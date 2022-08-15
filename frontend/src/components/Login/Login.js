@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useReducer, useContext, useRef } from 'react';
 import {useNavigate} from 'react-router-dom';
-
+import axios from 'axios';
 import Card from '../UI/Card/Card';
 import classes from './Login.module.css';
 import Button from '../UI/Button/Button';
@@ -9,19 +9,22 @@ import Input from '../UI/Input/Input';
 
 const Login = (props) => {
   const [formIsValid, setFormIsValid] = useState(false);
-  const [emailSate,dispatchEmail] = useReducer((state,action)=>{
-
-    if(action.type === "USER_EMAIL"){
-      return {value: action.val, isValid:action.val.includes("@") };
-    };
-    if(action.type === "USER_EMAIL_VALIDATION"){
-      return {value:state.value, isValid:state.value.includes("@")};
+  const [usernameState, dispatchUsername] = useReducer(
+    (state, action) => {
+      if (action.type === "USERNAME") {
+        return { value: action.val, isValid: action.val.trim().length > 3 };
+      }
+      if (action.type === "USERNAME_VALID") {
+        //Need to check validation from DB.
+        return { value: state.value, isValid: state.value.trim().length > 3 };
+      }
+      return { value: "", isValid: false };
+    },
+    {
+      value: "",
+      isValid: false,
     }
-    return {value: '',isValid:false};
-  },{
-    value: '',
-    isValid: false
-  })
+  );
 
   const [passwordSate,dispatchPW] = useReducer((state,action)=>{
     if(action.type === "USER_PW"){
@@ -37,37 +40,37 @@ const Login = (props) => {
   });
   const cntx = useContext(AuthContext); 
   
-  const emailInputRef = useRef(emailSate.value);
+  const emailInputRef = useRef(usernameState.value);
   const passwordInputRef = useRef(passwordSate.value);
 
   //Checking if both email&PW is valid, and puts them in another object for validation
-  const {isValid:emailIsValid} = emailSate; //The point for it, is for useEffect not to run
+  const {isValid:usernameIsValid} = usernameState; //The point for it, is for useEffect not to run
   const {isValid:passwordIsValid} = passwordSate; //if already the validation is true, and the component is still changing.
 
   useEffect(()=> {
     const timer = setTimeout(() => {
       //console.log("typing"); Waiting for 500 before typing it.
       setFormIsValid(
-        emailIsValid && passwordIsValid)
+        usernameIsValid && passwordIsValid)
     }
     ,500)
     return () => { //Returns function on useEffect launches right when the component creates and b4 the main useEffect function.
       clearTimeout(timer); //Cleaning the setTimeout timer so it wont send request to server
       //console.log("cleanup") Runs when ever cleanup runs
     }
-  },[emailIsValid,passwordIsValid])
+  },[usernameIsValid,passwordIsValid])
 
 
-  const emailChangeHandler = (event) => {
-    dispatchEmail({type:"USER_EMAIL", val: event.target.value});
+  const usernameChangeHandler = (event) => {
+    dispatchUsername({ type: "USERNAME", val: event.target.value });
   };
 
   const passwordChangeHandler = (event) => {
     dispatchPW({type:"USER_PW", val:event.target.value});
   };
 
-  const validateEmailHandler = () => {
-    dispatchEmail({type:"USER_EMAIL_VALIDATION"})
+  const validateUserHandler = () => {
+    dispatchUsername({ type: "USERNAME_VALID" });
   };
 
   const validatePasswordHandler = () => {
@@ -79,10 +82,36 @@ const Login = (props) => {
   const submitHandler = (event) => {
     event.preventDefault();
     if(formIsValid){
-      cntx.onLogIn(emailSate.value, passwordSate.value);
-      navigate('/');
+      axios.post("http://localhost:3030/api/user/login", {
+        username: usernameState.value,
+        password: passwordSate.value,
+      }).then(res => {
+        if(typeof(res.data) === typeof("string")){ //Checks if a Token came back.
+        cntx.onLogIn(usernameState.value, passwordSate.value);
+        navigate('/');
+        }
+        else{
+          switch(res.data.status){ //Checks if an object with error message came back
+            case 400:
+              console.log("Validation failed");
+              break;
+            case 500:
+              console.log("Something went wrong, try again later :-)");
+              break;
+            case 411:
+              console.log("Username or E-mail already exists.");
+              break;
+            default:
+              break;
+          }
+        }
+        // cntx.onLogIn(usernameState.value, passwordSate.value);
+        // navigate('/');
+      }).catch(res => {})
+        // cntx.onLogIn(usernameState.value, passwordSate.value);
+        // navigate('/');
     }
-    else if(!emailIsValid){
+    else if(!usernameIsValid){
       emailInputRef.current.focus();
     }
     else {
@@ -90,6 +119,9 @@ const Login = (props) => {
     }
   };
 
+  const navToRegisterHandler= () => {
+    navigate('/register');
+  };
 
   return (
     <Card className={classes.login}>
@@ -97,13 +129,13 @@ const Login = (props) => {
 
         <Input          //E-mail input
         ref={emailInputRef}
-        id="email"
-        name="E-Mail"
-        type="email"
-        isValid={emailIsValid}
-        value={emailSate.value}
-        onChange={emailChangeHandler}
-        onBlur={validateEmailHandler} />
+        id="username"
+        name="Username"
+        type="text"
+        isValid={usernameIsValid}
+        value={usernameState.value}
+        onChange={usernameChangeHandler}
+        onBlur={validateUserHandler} />
 
         <Input          //Password input
         ref={passwordInputRef}
@@ -121,6 +153,7 @@ const Login = (props) => {
           </Button>
         </div>
       </form>
+      <p style={{textAlign: "center"}}>Not a member yet? <u onClick={navToRegisterHandler}>Click here</u> to sign up!</p>
     </Card>
   );
 };

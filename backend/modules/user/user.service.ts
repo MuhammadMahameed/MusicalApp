@@ -28,8 +28,8 @@ const addUser = ({ email, username, password, isAdmin = false }: IUser) => {
                 .then(() => resolve())
                 .catch((err: MongooseError) => {
                   if (err.name === "ValidationError")
-                    reject("Validation failed!");
-                  else reject("Saving user failed!");
+                  reject({ status: 400, message: "Validation error" });
+                  else reject({ status: 500, message: "internal server error" });
                 });
             }
           });
