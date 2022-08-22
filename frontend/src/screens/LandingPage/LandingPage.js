@@ -10,8 +10,8 @@ const LandingPage = () => {
         <Row>
           <div className="intro-text">
             <div>
-              {!userInfo && <h1 className="title">Welcome to Musica-App</h1>}
-              {userInfo && <h1 className="title">Welcome back to Musica-App</h1>}
+              {!userInfo && <h1 className="title">Welcome to MusicApp</h1>}
+              {userInfo && <h1 className="title">Welcome back to MusicApp</h1>}
               {!userInfo && <h3>Please log in to view all the songs :)</h3>}
               <div className="buttonContainer">
                 {userInfo && (

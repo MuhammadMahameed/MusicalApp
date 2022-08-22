@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { Button, Card, Col, Container, Row, Form } from "react-bootstrap";
+import { Button, Card, Col, Container, Row, Form, Dropdown, ButtonGroup } from "react-bootstrap";
 import { useDispatch, useSelector } from "react-redux";
 import ErrorMessage from "../../components/Handlers/ErrorMessage";
 import Loading from "../../components/Handlers/Loading";
@@ -7,7 +7,10 @@ import MainScreen from "../../components/MainScreen/MainScreen";
 import { getAllSong } from "../../actions/songAction";
 import { useNavigate } from "react-router-dom";
 import { isHeAdmin } from "../../services/userService";
+
 import './SongsPage.css';
+import { getGenres } from "../../services/songService";
+
 const SongsPage = () => {
   const dispatch = useDispatch();
   const [searchText, setSearchText] = useState("");
@@ -15,6 +18,8 @@ const SongsPage = () => {
   const [isAdmin, setIsAdmin] = useState(false);
   const { loading, error, songsInfo } = allSongs;
   const navigate = useNavigate();
+  const [genres, setGenres] = useState();
+
   useEffect(() => {
     isHeAdmin().then((isAdmin) => {
       setIsAdmin(isAdmin);
@@ -23,6 +28,17 @@ const SongsPage = () => {
       dispatch(getAllSong());
     }
   }, [dispatch, songsInfo, isAdmin]);
+
+  useEffect(() => {
+    const initFetch = async () => {
+      const genres = await getGenres();
+      const genreNames = genres.map((g) => g.name);
+      setGenres(genreNames);
+    };
+    initFetch();
+  }, []);
+
+  console.log(genres);
 
   return (
     <MainScreen title="Songs">
@@ -40,13 +56,51 @@ const SongsPage = () => {
             </Button>
           </Row>
         )}
-      <Form.Control
-        className="searchBox"
-        type="text"
-        id="searchId"
-        placeholder="Search For Song"
-        onChange={(event) => setSearchText(event.target.value.toLowerCase())}
-      />
+
+      <Row>
+        <Col lg={4} md={6} sm={12} xs={12}>
+          <Form.Control
+            className="searchBox"
+            type="text"
+            id="songSearch"
+            placeholder="Search For Song"
+            onChange={(event) => setSearchText(event.target.value.toLowerCase())}
+          />
+        </Col>
+        <Col lg={4} md={6} sm={12} xs={12}>
+          <Form.Control
+            className="searchBox"
+            type="text"
+            id="artistSearch"
+            placeholder="Search For Artist"
+            onChange={(event) => setSearchText(event.target.value.toLowerCase())}
+          />
+        </Col>
+
+        <Col lg={4} md={6} sm={12} xs={12}>
+          {/* <Dropdown.Toggle variant="primary" id="dropdown-basic"> */}
+          <Form.Select>
+          {genres?.map((g) =>
+
+            {return (<option key={g.name} value={g.name}>
+              {g.name}
+            </option>)})(
+          )}
+          </Form.Select>
+          {/* </Dropdown.Toggle> */}
+        </Col>
+
+        <Col lg={4} md={6} sm={12} xs={12}>
+          <Button
+              size="md"
+              variant="primary"
+              // onClick={() => window.open(song.link)}
+            >
+              Sumbit
+          </Button>
+        </Col>
+      </Row>
+
       <Row>
         {
         songsInfo?.filter(songInfo => songInfo.name.toLowerCase().includes(searchText)).
